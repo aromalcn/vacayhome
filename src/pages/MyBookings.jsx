@@ -7,6 +7,7 @@ import { useToast } from '../components/Toast';
 import { formatDate } from '../utils/dateFormatter';
 import ReviewForm from '../components/ReviewForm';
 import Receipt from '../components/Receipt';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -15,38 +16,83 @@ const MyBookings = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [reviewModal, setReviewModal] = useState({ isOpen: false, bookingId: null, propertyId: null });
     const [selectedReceipt, setSelectedReceipt] = useState(null);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, bookingId: null, currentStatus: null, paymentStatus: null, message: '', title: '' });
 
     const navigate = useNavigate(); // Initialize useNavigate
     const { showToast } = useToast(); // Initialize useToast
 
-    useEffect(() => {
-        const fetchBookings = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                
-                if (!user) {
-                    navigate('/login');
-                    return;
-                }
-
-                const { data, error } = await supabase
-                    .from('bookings')
-                    .select('*, properties(*)')
-                    .eq('tourist_id', user.id)
-                    .order('check_in', { ascending: false });
-
-                if (error) throw error;
-                setBookings(data || []);
-            } catch (error) {
-                console.error('Error fetching bookings:', error);
-                showToast('Error loading bookings', 'error');
-            } finally {
-                setLoading(false);
+    const fetchBookings = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                navigate('/login');
+                return;
             }
-        };
 
+            const { data, error } = await supabase
+                .from('bookings')
+                .select('*, properties(*)')
+                .eq('tourist_id', user.id)
+                .order('check_in', { ascending: false });
+
+            if (error) throw error;
+            setBookings(data || []);
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+            showToast('Error loading bookings', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchBookings();
     }, [navigate, showToast]);
+
+    const handleCancelBooking = async (bookingId, currentStatus, paymentStatus) => {
+        let message = 'Are you sure you want to cancel this booking?';
+        let title = 'Cancel Booking';
+
+        if (currentStatus === 'confirmed') {
+            message = 'Confirmed bookings only receive an 80% refund. A 20% cancellation fee will apply. Are you sure you want to cancel?';
+            title = 'Cancel Confirmed Booking';
+        }
+
+        setConfirmModal({
+            isOpen: true,
+            bookingId,
+            currentStatus,
+            paymentStatus,
+            message,
+            title
+        });
+    };
+
+    const processCancelBooking = async () => {
+        const { bookingId, currentStatus, paymentStatus } = confirmModal;
+        let refundPercent = currentStatus === 'confirmed' ? 80 : 100;
+
+        try {
+            const updates = { status: 'cancelled' };
+            if (paymentStatus === 'paid') {
+                updates.payment_status = currentStatus === 'confirmed' ? 'refunded_partial' : 'refunded';
+            }
+
+            const { error } = await supabase
+                .from('bookings')
+                .update(updates)
+                .eq('id', bookingId);
+
+            if (error) throw error;
+
+            showToast(refundPercent === 100 ? 'Booking cancelled and full refund processed' : 'Booking cancelled and 80% refund processed', 'success');
+            fetchBookings();
+        } catch (error) {
+            console.error('Error cancelling booking:', error);
+            showToast('Failed to cancel booking', 'error');
+        }
+    };
 
     const filteredBookings = bookings.filter(booking => {
         const matchesStatus = filterStatus === 'all' || booking.status === filterStatus;
@@ -77,7 +123,7 @@ const MyBookings = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     {/* Filter Tabs */}
                     <div className="flex space-x-2 overflow-x-auto pb-2 md:pb-0">
-                        {['all', 'pending', 'confirmed', 'rejected'].map(status => (
+                        {['all', 'pending', 'confirmed', 'rejected', 'cancelled'].map(status => (
                             <button
                                 key={status}
                                 onClick={() => setFilterStatus(status)}
@@ -139,6 +185,7 @@ const MyBookings = () => {
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
                                                     booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                                                     booking.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                    booking.status === 'cancelled' ? 'bg-gray-100 text-gray-700' :
                                                     'bg-yellow-100 text-yellow-700'
                                                 }`}>
                                                     {booking.status}
@@ -179,10 +226,27 @@ const MyBookings = () => {
                                                         <IndianRupee className="w-3 h-3 mr-1" /> View Receipt
                                                     </button>
                                                 )}
+                                                {(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') && (
+                                                    <button
+                                                        onClick={() => setSelectedReceipt(booking)}
+                                                        className="text-orange-600 font-medium hover:bg-orange-50 px-3 py-1.5 rounded-full transition text-sm flex items-center border border-orange-100"
+                                                    >
+                                                        <IndianRupee className="w-3 h-3 mr-1" /> Refund Receipt
+                                                    </button>
+                                                )}
                                             </div>
 
                                             {/* Right Side: Actions */}
                                             <div className="flex items-center gap-4">
+                                                {(booking.status === 'pending' || booking.status === 'confirmed') && 
+                                                 new Date(booking.check_in).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) && (
+                                                    <button
+                                                        onClick={() => handleCancelBooking(booking.id, booking.status, booking.payment_status)}
+                                                        className="text-red-600 font-medium hover:bg-red-50 px-3 py-1.5 rounded-full transition text-sm"
+                                                    >
+                                                        Cancel Booking
+                                                    </button>
+                                                )}
                                                 {booking.status === 'confirmed' && (
                                                     <button
                                                         onClick={() => setReviewModal({ isOpen: true, bookingId: booking.id, propertyId: booking.property_id })}
@@ -228,6 +292,18 @@ const MyBookings = () => {
                 isOpen={!!selectedReceipt}
                 onClose={() => setSelectedReceipt(null)}
                 booking={selectedReceipt}
+            />
+
+            {/* Confirm Cancellation Modal */}
+            <ConfirmDialog
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={processCancelBooking}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText="Yes, Cancel Booking"
+                cancelText="No, Keep Booking"
+                type={confirmModal.currentStatus === 'confirmed' ? 'warning' : 'danger'}
             />
         </div>
     );

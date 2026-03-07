@@ -84,7 +84,7 @@ const MyReceipts = () => {
                                                 <div className="text-xs text-gray-500">{booking.properties?.location}</div>
                                             </td>
                                             <td className="px-6 py-4 text-right font-bold text-gray-900 whitespace-nowrap">
-                                                ₹{booking.total_price.toLocaleString()}
+                                                ₹{booking.total_price?.toLocaleString() || '0'}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <button 

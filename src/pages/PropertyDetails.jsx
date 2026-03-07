@@ -29,8 +29,10 @@ import ContactOwnerModal from '../components/ContactOwnerModal';
 const ChangeMapView = ({ center }) => {
     const map = useMap();
     useEffect(() => {
-        if (center) map.setView(center, map.getZoom());
-    }, [center, map]);
+        if (center && center[0] && center[1]) {
+            map.setView(center, map.getZoom());
+        }
+    }, [center[0], center[1], map]);
     return null;
 };
 
@@ -163,7 +165,11 @@ const PropertyDetails = () => {
 
             showToast('Payment successful! Booking request sent.', 'success');
             setPaymentModalOpen(false);
-            navigate(`/booking-confirmation/${data.id}`);
+            if (data?.id) {
+                navigate(`/booking-confirmation/${data.id}`);
+            } else {
+                navigate('/tourist');
+            }
         } catch (error) {
             console.error('Booking error:', error);
             showToast('Failed to create booking: ' + error.message, 'error');

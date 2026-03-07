@@ -24,8 +24,10 @@ L.Icon.Default.mergeOptions({
 const ChangeMapView = ({ center }) => {
     const map = useMap();
     useEffect(() => {
-        if (center) map.setView(center, map.getZoom());
-    }, [center, map]);
+        if (center && center[0] && center[1]) {
+            map.setView(center, map.getZoom());
+        }
+    }, [center[0], center[1], map]);
     return null;
 };
 
@@ -117,7 +119,9 @@ const TouristDashboard = () => {
                         receiver_id,
                         property:property_id(title, image_url),
                         sender:sender_id(full_name),
-                        receiver:receiver_id(full_name)
+                        receiver:receiver_id(full_name),
+                        sender_id,
+                        receiver_id
                     `)
                     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
                     .order('created_at', { ascending: false });
@@ -307,69 +311,78 @@ const TouristDashboard = () => {
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* Map Container */}
-                                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm h-[400px] lg:h-[500px]">
-                                    <MapContainer
-                                        center={[nextBooking.properties.latitude, nextBooking.properties.longitude]}
-                                        zoom={14}
-                                        scrollWheelZoom={false}
-                                        style={{ height: '100%', width: '100%' }}
-                                    >
-                                        <TileLayer
-                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        />
-                                        <ChangeMapView center={[nextBooking.properties.latitude, nextBooking.properties.longitude]} />
-                                        
-                                        {/* Property Marker */}
-                                        <Marker 
-                                            position={[nextBooking.properties.latitude, nextBooking.properties.longitude]}
-                                            icon={createCustomIcon('bg-indigo-600', 'property')}
+                                {nextBooking?.properties?.latitude && nextBooking?.properties?.longitude ? (
+                                    <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm h-[400px] lg:h-[500px]">
+                                        <MapContainer
+                                            center={[nextBooking.properties.latitude, nextBooking.properties.longitude]}
+                                            zoom={14}
+                                            scrollWheelZoom={false}
+                                            style={{ height: '100%', width: '100%' }}
                                         >
-                                            <Popup>
-                                                <div className="p-1">
-                                                    <h4 className="font-bold text-gray-900">{nextBooking.properties.title}</h4>
-                                                    <p className="text-xs text-gray-500">Your Base Camp</p>
-                                                </div>
-                                            </Popup>
-                                        </Marker>
-
-                                        {/* POI Markers */}
-                                        {allPOIs.map(poi => (
+                                            <TileLayer
+                                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            />
+                                            <ChangeMapView center={[nextBooking.properties.latitude, nextBooking.properties.longitude]} />
+                                            
+                                            {/* Property Marker */}
                                             <Marker 
-                                                key={poi.id} 
-                                                position={[poi.latitude, poi.longitude]}
-                                                icon={createCustomIcon(
-                                                    poi.category === 'attraction' ? 'bg-red-500' :
-                                                    poi.category === 'restaurant' ? 'bg-orange-500' :
-                                                    poi.category === 'transport' ? 'bg-blue-500' : 'bg-green-500',
-                                                    poi.category
-                                                )}
+                                                position={[nextBooking.properties.latitude, nextBooking.properties.longitude]}
+                                                icon={createCustomIcon('bg-indigo-600', 'property')}
                                             >
                                                 <Popup>
-                                                    <div className="p-2 min-w-[150px]">
-                                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                                                            poi.category === 'attraction' ? 'text-red-500' :
-                                                            poi.category === 'restaurant' ? 'text-orange-500' :
-                                                            poi.category === 'transport' ? 'text-blue-500' : 'text-green-500'
-                                                        }`}>
-                                                            {poi.category}
-                                                        </span>
-                                                        <h4 className="font-bold text-gray-900 text-sm mt-0.5">{poi.name}</h4>
-                                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{poi.description}</p>
-                                                        <a 
-                                                            href={`https://www.google.com/maps/dir/?api=1&destination=${poi.latitude},${poi.longitude}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="mt-2 flex items-center gap-1 text-[10px] font-bold text-blue-600"
-                                                        >
-                                                            <Navigation className="w-3 h-3" /> Get Directions
-                                                        </a>
+                                                    <div className="p-1">
+                                                        <h4 className="font-bold text-gray-900">{nextBooking.properties.title}</h4>
+                                                        <p className="text-xs text-gray-500">Your Base Camp</p>
                                                     </div>
                                                 </Popup>
                                             </Marker>
-                                        ))}
-                                    </MapContainer>
-                                </div>
+
+                                            {/* POI Markers */}
+                                            {allPOIs.map(poi => (
+                                                <Marker 
+                                                    key={poi.id} 
+                                                    position={[poi.latitude, poi.longitude]}
+                                                    icon={createCustomIcon(
+                                                        poi.category === 'attraction' ? 'bg-red-500' :
+                                                        poi.category === 'restaurant' ? 'bg-orange-500' :
+                                                        poi.category === 'transport' ? 'bg-blue-500' : 'bg-green-500',
+                                                        poi.category
+                                                    )}
+                                                >
+                                                    <Popup>
+                                                        <div className="p-2 min-w-[150px]">
+                                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                                                                poi.category === 'attraction' ? 'text-red-500' :
+                                                                poi.category === 'restaurant' ? 'text-orange-500' :
+                                                                poi.category === 'transport' ? 'text-blue-500' : 'text-green-500'
+                                                            }`}>
+                                                                {poi.category}
+                                                            </span>
+                                                            <h4 className="font-bold text-gray-900 text-sm mt-0.5">{poi.name}</h4>
+                                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{poi.description}</p>
+                                                            <a 
+                                                                href={`https://www.google.com/maps/dir/?api=1&destination=${poi.latitude},${poi.longitude}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="mt-2 flex items-center gap-1 text-[10px] font-bold text-blue-600"
+                                                            >
+                                                                <Navigation className="w-3 h-3" /> Get Directions
+                                                            </a>
+                                                        </div>
+                                                    </Popup>
+                                                </Marker>
+                                            ))}
+                                        </MapContainer>
+                                    </div>
+                                ) : (
+                                    <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm h-[400px] lg:h-[500px] flex flex-col items-center justify-center text-gray-400 gap-4">
+                                        <div className="p-4 bg-gray-50 rounded-full">
+                                            <MapPin className="w-12 h-12 text-gray-300" />
+                                        </div>
+                                        <p>Map coordinates not available for this property.</p>
+                                    </div>
+                                )}
 
                                 {/* Recommendation Columns - Scrollable on Desktop */}
                                 <div className="lg:col-span-1 space-y-6 lg:h-[540px] lg:overflow-y-auto pr-2 custom-scrollbar">

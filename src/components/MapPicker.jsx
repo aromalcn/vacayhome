@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-lea
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Search, Navigation, MapPin } from 'lucide-react';
+import { useToast } from './Toast';
 
 // Fix for default marker icons in Leaflet
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -43,6 +44,7 @@ const ChangeView = ({ center }) => {
 };
 
 const MapPicker = ({ onLocationSelect, initialLocation }) => {
+  const { showToast } = useToast();
   const [position, setPosition] = useState(
     initialLocation ? [initialLocation.lat, initialLocation.lng] : null
   );
@@ -77,7 +79,7 @@ const MapPicker = ({ onLocationSelect, initialLocation }) => {
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
+      showToast('Geolocation is not supported by your browser', 'error');
       return;
     }
 
@@ -92,7 +94,7 @@ const MapPicker = ({ onLocationSelect, initialLocation }) => {
       },
       (err) => {
         console.error('Geolocation error:', err);
-        alert('Could not get your location. Please check your browser permissions.');
+        showToast('Could not get your location. Please check your browser permissions.', 'error');
         setLocating(false);
       }
     );

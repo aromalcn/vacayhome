@@ -23,12 +23,74 @@ const PaymentModal = ({ isOpen, onClose, amount, onSuccess, propertyTitle }) => 
 
     if (!isOpen) return null;
 
+    const handleCardNumberChange = (e) => {
+        const value = e.target.value.replace(/\D/g, '').substring(0, 16);
+        setCardNumber(value);
+    };
+
+    // Format expiry as MM/YY and validate month
+    const handleExpiryChange = (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length > 0) {
+            // Check first digit (can only be 0 or 1)
+            if (value.length === 1 && !['0', '1'].includes(value)) {
+                value = '0' + value;
+            }
+            // Check second digit if first is 1 (can only be 0, 1, 2)
+            if (value.length === 2) {
+                const month = parseInt(value);
+                if (month === 0) value = '01';
+                if (month > 12) value = '12';
+            }
+        }
+
+        const trimmed = value.substring(0, 4);
+        if (trimmed.length >= 2) {
+            setExpiry(`${trimmed.substring(0, 2)}/${trimmed.substring(2)}`);
+        } else {
+            setExpiry(trimmed);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        if (cardNumber.length < 16 || expiry.length < 5 || cvv.length < 3) {
-            setError('Please enter valid card details');
+        // Name validation (alphabets only)
+        if (!/^[a-zA-Z\s]+$/.test(cardName)) {
+            setError('Cardholder name should only contain alphabets');
+            return;
+        }
+
+        if (cardNumber.length < 16) {
+            setError('Please enter a valid 16-digit card number');
+            return;
+        }
+
+        if (expiry.length < 5) {
+            setError('Please enter a valid expiry date (MM/YY)');
+            return;
+        }
+
+        // Expiry date validation
+        const [month, year] = expiry.split('/').map(num => parseInt(num));
+        const now = new Date();
+        const currentYear = parseInt(now.getFullYear().toString().substring(2));
+        const currentMonth = now.getMonth() + 1;
+
+        if (month < 1 || month > 12) {
+            setError('Invalid month in expiry date');
+            return;
+        }
+
+        if (year < currentYear || (year === currentYear && month < currentMonth)) {
+            setError('Card has already expired');
+            return;
+        }
+
+        if (cvv.length < 3) {
+            setError('Please enter a valid CVV');
             return;
         }
 
@@ -41,22 +103,6 @@ const PaymentModal = ({ isOpen, onClose, amount, onSuccess, propertyTitle }) => 
             const transactionId = 'TXN' + Date.now() + Math.floor(Math.random() * 1000);
             onSuccess(transactionId);
         }, 2000);
-    };
-
-    // Format card number with spaces
-    const handleCardNumberChange = (e) => {
-        const value = e.target.value.replace(/\D/g, '').substring(0, 16);
-        setCardNumber(value);
-    };
-
-    // Format expiry as MM/YY
-    const handleExpiryChange = (e) => {
-        const value = e.target.value.replace(/\D/g, '').substring(0, 4);
-        if (value.length >= 2) {
-            setExpiry(`${value.substring(0, 2)}/${value.substring(2)}`);
-        } else {
-            setExpiry(value);
-        }
     };
 
     return (

@@ -345,7 +345,7 @@ const OwnerDashboard = () => {
                                         </div>
                                     )}
                                     
-                                    {req.status === 'pending' ? (
+                                    {req.status === 'pending' && new Date(req.check_in).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? (
                                         <div className="flex space-x-2">
                                             <button 
                                                 onClick={() => handleBookingAction(req.id, 'confirmed')}
@@ -359,6 +359,10 @@ const OwnerDashboard = () => {
                                             >
                                                 Reject
                                             </button>
+                                        </div>
+                                    ) : req.status === 'pending' ? (
+                                        <div className="py-1.5 bg-gray-100 text-gray-500 text-sm rounded-full text-center font-medium italic">
+                                            Expired
                                         </div>
                                     ) : req.status === 'confirmed' ? (
                                         <div className="py-1.5 bg-green-100 text-green-700 text-sm rounded-full text-center font-medium">

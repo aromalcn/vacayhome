@@ -116,7 +116,7 @@ const BookingRequests = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     {/* Filter Tabs */}
                     <div className="flex space-x-2 overflow-x-auto pb-2 md:pb-0">
-                        {['all', 'pending', 'confirmed', 'rejected'].map(status => (
+                        {['all', 'pending', 'confirmed', 'rejected', 'cancelled'].map(status => (
                             <button
                                 key={status}
                                 onClick={() => setFilterStatus(status)}
@@ -162,6 +162,7 @@ const BookingRequests = () => {
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
                                                     req.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                                                     req.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                    req.status === 'cancelled' ? 'bg-gray-100 text-gray-700' :
                                                     'bg-yellow-100 text-yellow-700'
                                                 }`}>
                                                     {req.status}
@@ -196,7 +197,7 @@ const BookingRequests = () => {
                                         </div>
                                     </div>
                                     
-                                    {req.status === 'pending' && (
+                                    {req.status === 'pending' && new Date(req.check_in).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? (
                                         <div className="flex space-x-3 pt-2 border-t border-gray-200 mt-4">
                                             <button 
                                                 onClick={() => handleBookingAction(req.id, 'confirmed')}
@@ -210,6 +211,10 @@ const BookingRequests = () => {
                                             >
                                                 Reject
                                             </button>
+                                        </div>
+                                    ) : req.status === 'pending' && (
+                                        <div className="pt-2 border-t border-gray-200 mt-4 text-center text-gray-400 italic text-sm">
+                                            This request has expired as the check-in date has passed.
                                         </div>
                                     )}
                                 </div>

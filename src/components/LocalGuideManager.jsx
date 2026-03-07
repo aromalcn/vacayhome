@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, X, MapPin, Utensils, Bus, Clock, Save, Trash2, Edit2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useToast } from './Toast';
+import ConfirmDialog from './ConfirmDialog';
 
 const LocalGuideManager = ({ propertyId, latitude, longitude }) => {
     const { showToast } = useToast();
@@ -20,6 +21,7 @@ const LocalGuideManager = ({ propertyId, latitude, longitude }) => {
     const [currentUserId, setCurrentUserId] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [editingPoiId, setEditingPoiId] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null });
 
     const resetForm = () => {
         setNewPoi({
@@ -120,8 +122,11 @@ const LocalGuideManager = ({ propertyId, latitude, longitude }) => {
     };
 
     const handleDeletePoi = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this recommendation?')) return;
-        
+        setConfirmDelete({ isOpen: true, id });
+    };
+
+    const processDeletePoi = async () => {
+        const id = confirmDelete.id;
         try {
             const { error } = await supabase
                 .from('location_pois')
@@ -376,6 +381,17 @@ const LocalGuideManager = ({ propertyId, latitude, longitude }) => {
                     </div>
                 )}
             </div>
+
+            <ConfirmDialog
+                isOpen={confirmDelete.isOpen}
+                onClose={() => setConfirmDelete({ isOpen: false, id: null })}
+                onConfirm={processDeletePoi}
+                title="Delete Recommendation"
+                message="Are you sure you want to delete this recommendation? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+            />
         </div>
     );
 };

@@ -19,6 +19,15 @@ const ProfileSettings = () => {
         emergency_contact_relationship: ''
     });
 
+    const [errors, setErrors] = useState({
+        full_name: '',
+        phone: '',
+        location: '',
+        emergency_contact_name: '',
+        emergency_contact_phone: '',
+        emergency_contact_relationship: ''
+    });
+
     useEffect(() => {
         fetchProfile();
     }, []);
@@ -58,11 +67,63 @@ const ProfileSettings = () => {
     };
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+
+        // Constraint: Full name alphabets only
+        if ((name === 'full_name' || name === 'emergency_contact_name') && /[^a-zA-Z\s]/.test(value)) return;
+
+        // Constraint: Phone numbers digits only and max 10
+        if (name === 'phone' || name === 'emergency_contact_phone') {
+            const digits = value.replace(/\D/g, '');
+            if (digits.length > 10) return;
+            setFormData({ ...formData, [name]: digits });
+            setErrors({ ...errors, [name]: '' });
+            return;
+        }
+
+        setFormData({ ...formData, [name]: value });
+        setErrors({ ...errors, [name]: '' });
+    };
+
+    const validate = () => {
+        const newErrors = {
+            full_name: '', phone: '', location: '',
+            emergency_contact_name: '', emergency_contact_phone: '',
+            emergency_contact_relationship: ''
+        };
+        let isValid = true;
+
+        if (!formData.full_name.trim()) {
+            newErrors.full_name = 'Full name is required';
+            isValid = false;
+        } else if (formData.full_name.trim().length < 2) {
+            newErrors.full_name = 'Name must be at least 2 characters';
+            isValid = false;
+        }
+
+        if (!formData.phone.trim()) {
+            newErrors.phone = 'Phone number is required';
+            isValid = false;
+        } else if (formData.phone.length < 10) {
+            newErrors.phone = 'Phone number must be exactly 10 digits';
+            isValid = false;
+        }
+
+        if (formData.emergency_contact_phone && formData.emergency_contact_phone.length < 10) {
+            newErrors.emergency_contact_phone = 'Emergency phone must be 10 digits';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validate()) {
+            showToast('Please fix the errors in the form', 'error');
+            return;
+        }
         setSaving(true);
         try {
             const { error } = await supabase
@@ -107,9 +168,9 @@ const ProfileSettings = () => {
                                     name="full_name"
                                     value={formData.full_name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                                    required 
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.full_name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} 
                                 />
+                                {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
@@ -118,9 +179,9 @@ const ProfileSettings = () => {
                                     name="phone"
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                                    required 
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} 
                                 />
+                                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
@@ -166,8 +227,9 @@ const ProfileSettings = () => {
                                     value={formData.emergency_contact_phone}
                                     onChange={handleChange}
                                     placeholder="Emergency Contact Phone"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.emergency_contact_phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} 
                                 />
+                                {errors.emergency_contact_phone && <p className="text-red-500 text-xs mt-1">{errors.emergency_contact_phone}</p>}
                             </div>
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Relationship</label>

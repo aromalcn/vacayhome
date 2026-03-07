@@ -8,13 +8,19 @@ const ReceiptContent = ({ booking }) => (
         <div className="border-b-2 border-gray-100 pb-8 mb-8 flex justify-between items-start">
             <div>
                 <h1 className="text-3xl font-bold text-blue-600 mb-2">VacayHome</h1>
-                <p className="text-gray-500 text-sm">Receipt for your reservation</p>
+                <p className="text-gray-500 text-sm">{(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') ? 'Refund Receipt' : 'Receipt for your reservation'}</p>
             </div>
             <div className="text-right">
-                <h3 className="text-xl font-bold text-gray-900 mb-1">RECEIPT</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') ? 'REFUND' : 'RECEIPT'}</h3>
                 <p className="text-gray-500 font-mono text-sm">#{booking.transaction_id || 'PENDING'}</p>
-                <div className="mt-2 inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wide">
-                    <CheckCircle className="w-3 h-3 mr-1" /> Paid
+                <div className={`mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                    (booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                }`}>
+                    {(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') ? (
+                        <>Refunded</>
+                    ) : (
+                        <><CheckCircle className="w-3 h-3 mr-1" /> Paid</>
+                    )}
                 </div>
             </div>
         </div>
@@ -24,12 +30,12 @@ const ReceiptContent = ({ booking }) => (
             <div>
                 <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Billed To</h4>
                 <p className="font-bold text-gray-900 text-lg mb-1">{booking.profiles?.full_name || 'Guest'}</p>
-                <p className="text-gray-600">{booking.profiles?.email}</p>
+                <p className="text-gray-600">{booking.profiles?.email || 'N/A'}</p>
             </div>
             <div className="text-right">
                 <h4 className="text-xs font-bold text-gray-400 uppercase mb-3">Property Details</h4>
                 <p className="font-bold text-gray-900 text-lg mb-1">{booking.properties?.title}</p>
-                <p className="text-gray-600 mb-1">{booking.properties?.location}</p>
+                <p className="text-gray-600 mb-1">{booking.properties?.location || 'N/A'}</p>
             </div>
         </div>
 
@@ -60,17 +66,33 @@ const ReceiptContent = ({ booking }) => (
         {/* Payment Details */}
         <div className="border-t border-gray-200 pt-8">
             <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">Base Price</span>
-                <span className="font-medium text-gray-900">₹{booking.total_price - 2000}</span>
+                <span className="text-gray-600">Total Paid Originally</span>
+                <span className="font-medium text-gray-900">₹{booking.total_price?.toLocaleString() || '0'}</span>
             </div>
-            <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">Service Fee</span>
-                <span className="font-medium text-gray-900">₹2,000</span>
-            </div>
-            <div className="flex justify-between items-center pt-4 border-t border-gray-200 mt-4">
-                <span className="text-xl font-bold text-gray-900">Total Paid</span>
-                <span className="text-xl font-bold text-blue-600">₹{booking.total_price.toLocaleString()}</span>
-            </div>
+            
+            {(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') && (
+                <>
+                    {booking.payment_status === 'refunded_partial' && (
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-gray-600 italic">Cancellation Fee (20%)</span>
+                            <span className="font-medium text-red-600">-₹{((booking.total_price || 0) * 0.2).toLocaleString()}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-200 mt-4">
+                        <span className="text-xl font-bold text-gray-900">Total Refunded</span>
+                        <span className="text-xl font-bold text-orange-600">
+                            ₹{(booking.payment_status === 'refunded_partial' ? (booking.total_price || 0) * 0.8 : (booking.total_price || 0)).toLocaleString()}
+                        </span>
+                    </div>
+                </>
+            )}
+
+            {booking.payment_status !== 'refunded' && booking.payment_status !== 'refunded_partial' && (
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200 mt-4">
+                    <span className="text-xl font-bold text-gray-900">Total Paid</span>
+                    <span className="text-xl font-bold text-blue-600">₹{booking.total_price?.toLocaleString() || '0'}</span>
+                </div>
+            )}
         </div>
 
         {/* Footer */}
@@ -132,7 +154,9 @@ const Receipt = ({ isOpen, onClose, booking, inline = false }) => {
             <div className={contentClasses}>
                 {/* Controls */}
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50 rounded-t-sm">
-                    <h2 className="text-lg font-bold text-gray-700">Payment Receipt</h2>
+                    <h2 className="text-lg font-bold text-gray-700">
+                        {(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') ? 'Refund Receipt' : 'Payment Receipt'}
+                    </h2>
                     <div className="flex space-x-2">
                         <button 
                             onClick={handlePrint}

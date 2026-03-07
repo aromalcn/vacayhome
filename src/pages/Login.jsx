@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 const Login = () => {
@@ -10,39 +10,54 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
+    const [errors, setErrors] = useState({ email: '', password: '' });
     const navigate = useNavigate();
+
+    const validate = () => {
+        const newErrors = { email: '', password: '' };
+        let isValid = true;
+
+        if (!email.trim()) {
+            newErrors.email = 'Email is required.';
+            isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            newErrors.email = 'Enter a valid email address.';
+            isValid = false;
+        }
+
+        if (!password) {
+            newErrors.password = 'Password is required.';
+            isValid = false;
+        } else if (password.length < 6) {
+            newErrors.password = 'Password must be at least 6 characters.';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setMessage(null);
+        if (!validate()) return;
 
+        setLoading(true);
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
 
-            // Fetch user role from profiles
             const { data: userData, error: userError } = await supabase
                 .from('profiles')
                 .select('role')
                 .eq('id', data.user.id)
                 .single();
-
             if (userError) throw userError;
 
-            // Redirect based on role
             const userRole = userData?.role;
-            if (userRole === 'owner') {
-                navigate('/owner');
-            } else if (userRole === 'admin') {
-                navigate('/admin');
-            } else {
-                navigate('/tourist');
-            }
+            if (userRole === 'owner') navigate('/owner');
+            else if (userRole === 'admin') navigate('/admin');
+            else navigate('/tourist');
 
         } catch (error) {
             setMessage({ type: 'error', text: error.message });
@@ -59,7 +74,6 @@ const Login = () => {
                 <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back</h2>
                 <p className="text-gray-500 text-center mb-6">Sign in to access your account</p>
 
-                {/* Message Alert */}
                 {message && (
                     <div className={`p-4 mb-4 text-sm rounded-2xl ${
                         message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -68,7 +82,8 @@ const Login = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    {/* Email */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                         <div className="relative">
@@ -76,14 +91,15 @@ const Login = () => {
                             <input
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: '' })); }}
                                 placeholder="you@example.com"
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                required
+                                className={`w-full pl-10 pr-4 py-2 border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                             />
                         </div>
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                     </div>
 
+                    {/* Password */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <div className="relative">
@@ -91,26 +107,21 @@ const Login = () => {
                             <input
                                 type={showPassword ? "text" : "password"}
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: '' })); }}
                                 placeholder="••••••••"
-                                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                required
+                                className={`w-full pl-10 pr-12 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
                             >
-                                {showPassword ? (
-                                    <EyeOff className="w-5 h-5" />
-                                ) : (
-                                    <Eye className="w-5 h-5" />
-                                )}
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                         </div>
+                        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                     </div>
 
-                    {/* Forgot Password Link - Simplified */}
                     <div className="flex justify-end text-sm">
                         <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">Forgot password?</a>
                     </div>

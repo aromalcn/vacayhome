@@ -22,12 +22,57 @@ const AddProperty = () => {
         longitude: null
     });
 
+    const [errors, setErrors] = useState({
+        title: '',
+        location: '',
+        price: '',
+        capacity: '',
+        map: ''
+    });
+
     const handleChange = (e) => {
-        let value = e.target.value;
+        let { name, value } = e.target;
         if (e.target.type === 'number') {
-             if (value < 0) value = 0; // Prevent negative inputs
+             if (value < 0) value = 0; 
         }
-        setFormData({ ...formData, [e.target.name]: value });
+        setFormData({ ...formData, [name]: value });
+        setErrors({ ...errors, [name]: '' });
+    };
+
+    const validate = () => {
+        const newErrors = { title: '', location: '', price: '', capacity: '', map: '' };
+        let isValid = true;
+
+        if (!formData.title.trim()) {
+            newErrors.title = 'Title is required';
+            isValid = false;
+        } else if (formData.title.trim().length < 5) {
+            newErrors.title = 'Title must be at least 5 characters';
+            isValid = false;
+        }
+
+        if (!formData.location.trim()) {
+            newErrors.location = 'Location is required';
+            isValid = false;
+        }
+
+        if (!formData.price || formData.price <= 0) {
+            newErrors.price = 'Price must be greater than 0';
+            isValid = false;
+        }
+
+        if (!formData.capacity || formData.capacity <= 0) {
+            newErrors.capacity = 'Capacity must be at least 1';
+            isValid = false;
+        }
+
+        if (formData.latitude === null || formData.longitude === null) {
+            newErrors.map = 'Please tag the location on the map';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
     };
 
     const handleImageChange = (e) => {
@@ -88,6 +133,10 @@ const AddProperty = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validate()) {
+            showToast('Please fix the errors in the form', 'error');
+            return;
+        }
         setLoading(true);
 
         try {
@@ -169,10 +218,10 @@ const AddProperty = () => {
                                     value={formData.title} 
                                     onChange={handleChange} 
                                     placeholder="e.g. Cozy Cottage in Hills" 
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500" 
-                                    required 
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-2xl focus:ring-2 focus:ring-blue-500 ${errors.title ? 'border-red-500' : 'border-gray-300'}`}
                                 />
                             </div>
+                            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
                         </div>
 
                         <div>
@@ -186,10 +235,10 @@ const AddProperty = () => {
                                     value={formData.location} 
                                     onChange={handleChange} 
                                     placeholder="City, State" 
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500" 
-                                    required 
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-2xl focus:ring-2 focus:ring-blue-500 ${errors.location ? 'border-red-500' : 'border-gray-300'}`}
                                 />
                             </div>
+                            {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
                         </div>
 
                         <div>
@@ -205,10 +254,10 @@ const AddProperty = () => {
                                     onChange={handleChange} 
                                     onKeyDown={(e) => (e.key === '-' || e.key === 'e') && e.preventDefault()}
                                     placeholder="5000" 
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500" 
-                                    required 
+                                    className={`w-full pl-10 pr-4 py-2 border rounded-2xl focus:ring-2 focus:ring-blue-500 ${errors.price ? 'border-red-500' : 'border-gray-300'}`}
                                 />
                             </div>
+                            {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
                         </div>
 
                         <div>
@@ -222,9 +271,9 @@ const AddProperty = () => {
                                 onChange={handleChange}
                                 onKeyDown={(e) => (e.key === '-' || e.key === 'e') && e.preventDefault()} 
                                 placeholder="4" 
-                                className="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500" 
-                                required 
+                                className={`w-full px-4 py-2 border rounded-2xl focus:ring-2 focus:ring-blue-500 ${errors.capacity ? 'border-red-500' : 'border-gray-300'}`}
                             />
+                            {errors.capacity && <p className="text-red-500 text-xs mt-1">{errors.capacity}</p>}
                         </div>
 
                         <div>
@@ -262,8 +311,12 @@ const AddProperty = () => {
                                 Tag Location on Map
                             </label>
                             <MapPicker 
-                                onLocationSelect={(loc) => setFormData({ ...formData, latitude: loc.lat, longitude: loc.lng })} 
+                                onLocationSelect={(loc) => {
+                                    setFormData({ ...formData, latitude: loc.lat, longitude: loc.lng });
+                                    setErrors({ ...errors, map: '' });
+                                }} 
                             />
+                            {errors.map && <p className="text-red-500 text-xs mt-1">{errors.map}</p>}
                         </div>
 
                         <div className="col-span-2">
