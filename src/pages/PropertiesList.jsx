@@ -47,36 +47,11 @@ const PropertiesList = () => {
         try {
             setLoading(true);
             
-            // Fetch Properties
-            const { data: propsData, error: propsError } = await supabase
-                .from('properties')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (propsError) throw propsError;
-
-            // Fetch Owners (Profiles) manually to ensure we get names
-            const ownerIds = [...new Set(propsData.map(p => p.owner_id).filter(Boolean))];
-            let ownersMap = {};
-            
-            if (ownerIds.length > 0) {
-                const { data: ownersData, error: ownersError } = await supabase
-                    .from('profiles')
-                    .select('id, full_name, email')
-                    .in('id', ownerIds);
-                
-                if (!ownersError && ownersData) {
-                    ownersData.forEach(o => ownersMap[o.id] = o);
-                }
+            const response = await fetch('/api/properties');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
-
-            // Stitch data
-            const enrichedProps = propsData.map(p => ({
-                ...p,
-                owner_name: ownersMap[p.owner_id]?.full_name || 'Unknown',
-                owner_email: ownersMap[p.owner_id]?.email || '',
-                is_owner_verified: ownersMap[p.owner_id]?.is_verified // Just in case we need it
-            }));
+            const enrichedProps = await response.json();
 
             setProperties(enrichedProps);
             setFilteredProperties(enrichedProps);
@@ -91,12 +66,18 @@ const PropertiesList = () => {
     const handleAction = async (propertyId, action) => {
         try {
             const newStatus = action === 'approve' ? 'approved' : 'rejected';
-            const { error } = await supabase
-                .from('properties')
-                .update({ status: newStatus })
-                .eq('id', propertyId);
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            const response = await fetch(`/api/properties/${propertyId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Failed to update status');
 
             showToast(`Property ${action}d successfully`, 'success');
             

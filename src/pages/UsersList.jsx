@@ -93,12 +93,15 @@ const UsersList = () => {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch('/api/users', {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            if (!response.ok) throw new Error('Failed to fetch users');
+            const data = await response.json();
+            
             setUsers(data || []);
             setFilteredUsers(data || []);
         } catch (error) {
@@ -111,12 +114,17 @@ const UsersList = () => {
 
     const handleVerifyOwner = async (ownerId) => {
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ is_verified: true })
-                .eq('id', ownerId);
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`/api/users/${ownerId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ is_verified: true })
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Failed to update verification status');
 
             showToast('User verified successfully', 'success');
             setUsers(prev => prev.map(u => u.id === ownerId ? { ...u, is_verified: true } : u));
@@ -133,12 +141,17 @@ const UsersList = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update(editFormData)
-                .eq('id', selectedUser.id);
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`/api/users/${selectedUser.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(editFormData)
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Failed to update user profile');
 
             showToast('User profile updated successfully', 'success');
             setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, ...editFormData } : u));

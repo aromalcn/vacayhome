@@ -15,20 +15,22 @@ const BookingRequests = () => {
 
     const fetchBookingRequests = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
             
-            if (!user) {
+            if (!session) {
                 navigate('/login');
                 return;
             }
 
-            const { data: requestsData, error } = await supabase
-                .from('bookings')
-                .select('*, properties(*), profiles(full_name)')
-                .eq('owner_id', user.id)
-                .order('created_at', { ascending: false });
+            const response = await fetch('/api/bookings/requests', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Failed to fetch requests');
+            const requestsData = await response.json();
+            
             setRequests(requestsData || []);
         } catch (error) {
             console.error('Error fetching booking requests:', error);
@@ -42,14 +44,23 @@ const BookingRequests = () => {
         fetchBookingRequests();
     }, []);
 
-    const handleBookingAction = async (bookingId, newStatus) => {
+    const handleBookingAction = async (bookingId, newStatus, newPaymentStatus = undefined) => {
         try {
-            const { error } = await supabase
-                .from('bookings')
-                .update({ status: newStatus })
-                .eq('id', bookingId);
+            const { data: { session } } = await supabase.auth.getSession();
             
-            if (error) throw error;
+            const updates = { status: newStatus };
+            if (newPaymentStatus) updates.payment_status = newPaymentStatus;
+
+            const response = await fetch(`/api/bookings/${bookingId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(updates)
+            });
+            
+            if (!response.ok) throw new Error('Failed to update booking status');
 
             // Refresh list
             await fetchBookingRequests();
@@ -215,6 +226,25 @@ const BookingRequests = () => {
                                     ) : req.status === 'pending' && (
                                         <div className="pt-2 border-t border-gray-200 mt-4 text-center text-gray-400 italic text-sm">
                                             This request has expired as the check-in date has passed.
+                                        </div>
+                                    )}
+
+                                    {req.status === 'cancelled' && (req.payment_status === 'refunded' || req.payment_status === 'refunded_partial') && (
+                                        <div className="flex space-x-3 pt-2 border-t border-gray-200 mt-4">
+                                            <div className="flex-1 flex items-center justify-center py-2 bg-red-50 text-red-600 font-bold rounded-full border border-red-200 text-sm">
+                                                Cancelled - Refund Needed
+                                            </div>
+                                            <button 
+                                                onClick={() => handleBookingAction(req.id, 'cancelled', 'refund_completed')}
+                                                className="flex-1 py-2 bg-blue-600 text-white font-medium text-sm rounded-full hover:bg-blue-700 transition shadow-sm"
+                                            >
+                                                Process Refund
+                                            </button>
+                                        </div>
+                                    )}
+                                    {req.status === 'cancelled' && req.payment_status === 'refund_completed' && (
+                                        <div className="pt-2 border-t border-gray-200 mt-4 text-center text-green-600 font-bold text-sm">
+                                            Refund Processed Successfully
                                         </div>
                                     )}
                                 </div>

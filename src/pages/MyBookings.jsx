@@ -23,20 +23,22 @@ const MyBookings = () => {
 
     const fetchBookings = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
             
-            if (!user) {
+            if (!session) {
                 navigate('/login');
                 return;
             }
 
-            const { data, error } = await supabase
-                .from('bookings')
-                .select('*, properties(*)')
-                .eq('tourist_id', user.id)
-                .order('check_in', { ascending: false });
+            const response = await fetch('/api/bookings/my-bookings', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Failed to fetch bookings');
+            const data = await response.json();
+            
             setBookings(data || []);
         } catch (error) {
             console.error('Error fetching bookings:', error);
@@ -79,12 +81,17 @@ const MyBookings = () => {
                 updates.payment_status = currentStatus === 'confirmed' ? 'refunded_partial' : 'refunded';
             }
 
-            const { error } = await supabase
-                .from('bookings')
-                .update(updates)
-                .eq('id', bookingId);
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`/api/bookings/${bookingId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(updates)
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Failed to cancel booking');
 
             showToast(refundPercent === 100 ? 'Booking cancelled and full refund processed' : 'Booking cancelled and 80% refund processed', 'success');
             fetchBookings();
@@ -226,7 +233,7 @@ const MyBookings = () => {
                                                         <IndianRupee className="w-3 h-3 mr-1" /> View Receipt
                                                     </button>
                                                 )}
-                                                {(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial') && (
+                                                {(booking.payment_status === 'refunded' || booking.payment_status === 'refunded_partial' || booking.payment_status === 'refund_completed') && (
                                                     <button
                                                         onClick={() => setSelectedReceipt(booking)}
                                                         className="text-orange-600 font-medium hover:bg-orange-50 px-3 py-1.5 rounded-full transition text-sm flex items-center border border-orange-100"

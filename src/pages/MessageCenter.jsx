@@ -77,18 +77,24 @@ const MessageCenter = () => {
             } else {
                 // Create virtual conversation
                 try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const headers = { 'Authorization': `Bearer ${session?.access_token}` };
+                    
                     const [propRes, userRes] = await Promise.all([
-                        supabase.from('properties').select('title, image_url').eq('id', propertyId).single(),
-                        supabase.from('profiles').select('full_name').eq('id', otherUserId).single()
+                        fetch(`/api/properties/${propertyId}`, { headers }),
+                        fetch(`/api/users/${otherUserId}`, { headers })
                     ]);
 
-                    if (propRes.data && userRes.data) {
+                    const propData = propRes.ok ? await propRes.json() : null;
+                    const userData = userRes.ok ? await userRes.json() : null;
+
+                    if (propData && userData) {
                         const virtual = {
                             property_id: propertyId,
-                            property_title: propRes.data.title,
-                            property_image: propRes.data.image_url,
+                            property_title: propData.title,
+                            property_image: propData.image_url,
                             other_party_id: otherUserId,
-                            other_party_name: userRes.data.full_name,
+                            other_party_name: userData.full_name,
                             last_message: 'Start a new conversation',
                             last_timestamp: new Date().toISOString(),
                             unread_count: 0,

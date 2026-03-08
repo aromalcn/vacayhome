@@ -328,13 +328,10 @@ const PropertyDetails = () => {
     useEffect(() => {
         const fetchProperty = async () => {
             try {
-                const { data, error } = await supabase
-                    .from('properties')
-                    .select('*, profiles:owner_id(full_name, is_verified)')
-                    .eq('id', id)
-                    .single();
+                const response = await fetch(`/api/properties/${id}`);
+                if (!response.ok) throw new Error('Failed to fetch property');
                 
-                if (error) throw error;
+                const data = await response.json();
                 setProperty(data);
                 
                 if (data.latitude && data.longitude) {

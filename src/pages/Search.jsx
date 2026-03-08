@@ -34,13 +34,10 @@ const Search = () => {
                 role = profileData?.role;
             }
 
-            // 1. Fetch Main Properties (RLS Applied Separately in DB)
-            const { data, error } = await supabase
-                .from('properties')
-                .select('*, profiles(is_verified)')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
+            // 1. Fetch Main Properties
+            const response = await fetch('/api/properties');
+            if (!response.ok) throw new Error('Failed to fetch properties');
+            const data = await response.json();
 
             let allProps = data || [];
             
@@ -53,10 +50,6 @@ const Search = () => {
 
             setProperties(allProps);
             setFilteredProperties(allProps);
-
-            // 2. Fetch Bookings (for future use/calendars)
-            await supabase.from('bookings').select('*').eq('status', 'confirmed');
-
         } catch (err) {
             console.error('Error fetching data:', err);
             setFetchError(err.message || 'Unknown error fetching properties');
