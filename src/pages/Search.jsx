@@ -173,7 +173,15 @@ const Search = () => {
                         <div key={p.id} className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden hover:shadow-lg transition">
                             <div className="h-48 bg-gray-200 relative">
                                 {p.image_url ? (
-                                    <img src={p.image_url} className="w-full h-full object-cover" alt={p.title} />
+                                    <img 
+                                        src={p.image_url} 
+                                        className="w-full h-full object-cover" 
+                                        alt={p.title} 
+                                        onError={(e) => {
+                                            e.target.onerror = null; 
+                                            e.target.src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200";
+                                        }}
+                                    />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
                                 )}

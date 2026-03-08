@@ -84,7 +84,10 @@ const TouristDashboard = () => {
                     .order('check_in', { ascending: true });
                 
                 if (error) console.error('Error fetching bookings:', error);
-                const userBookings = bookingsData || [];
+                const userBookings = (bookingsData || []).map(b => ({
+                    ...b,
+                    properties: applyOverwriteToSingle(b.properties)
+                }));
                 setBookings(userBookings);
 
                 // Find next confirmed/pending booking to show nearby guide
@@ -106,7 +109,7 @@ const TouristDashboard = () => {
 
                 if (savedError) console.error('Error fetching saved properties:', savedError);
                 if (savedData) {
-                    const savedProps = savedData.map(item => item.properties);
+                    const savedProps = savedData.map(item => applyOverwriteToSingle(item.properties));
                     setSavedProperties(savedProps);
                 }
 
@@ -498,6 +501,10 @@ const TouristDashboard = () => {
                                                         src={property.image_url} 
                                                         alt={property.title} 
                                                         className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.target.onerror = null; 
+                                                            e.target.src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200";
+                                                        }}
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">

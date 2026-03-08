@@ -37,11 +37,11 @@ export const propertyOverwrites = {
         title: "Heritage Haveli Escape",
         description: "Step back in time in this beautifully restored 18th-century Haveli. Discover the rich culture, intricate architecture, and vibrant colors of the Pink City from a regal perspective.",
         location: "Jaipur, Rajasthan",
-        image_url: "https://images.unsplash.com/photo-1598890777032-bde13fba5cd3?auto=format&fit=crop&w=1200",
+        image_url: "https://images.unsplash.com/photo-1598890777032-bde13fba5cd3?q=80&w=1200&auto=format&fit=crop",
         images: [
-            "https://images.unsplash.com/photo-1598890777032-bde13fba5cd3?auto=format&fit=crop&w=1200",
-            "https://images.unsplash.com/photo-1524230572899-a752b3835840?auto=format&fit=crop&w=1200",
-            "https://images.unsplash.com/photo-1592229505726-ca121723b8ef?auto=format&fit=crop&w=1200"
+            "https://images.unsplash.com/photo-1598890777032-bde13fba5cd3?q=80&w=1200&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1524230572899-a752b3835840?q=80&w=1200&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1592229505726-ca121723b8ef?q=80&w=1200&auto=format&fit=crop"
         ]
     },
     "bf44ad89-0bb4-4656-8e16-2cb43a3886b0": {
@@ -136,45 +136,63 @@ export const propertyOverwrites = {
     }
 };
 
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200";
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200";
+
+// Ensure we have a valid image URL for every property
+const ensureValidImageUrl = (url) => {
+    if (!url || typeof url !== 'string' || url.trim() === '') return DEFAULT_IMAGE;
+    // If it's a Supabase storage URL that's likely broken (common in this test DB), we could optionally replace it
+    // but for now, we just ensure it's not null/empty
+    return url;
+};
 
 export const applyOverwrites = (properties) => {
     if (!properties) return [];
     return properties.map(p => {
+        if (!p || !p.id) return p;
         const overwrite = propertyOverwrites[p.id];
         if (overwrite) {
-            return {
+            const merged = {
                 ...p,
                 ...overwrite,
-                // Ensure image_url is never null
-                image_url: overwrite.image_url || p.image_url || DEFAULT_IMAGE,
-                // Ensure images array is never empty and follows the overwrite if present
-                images: (overwrite.images && overwrite.images.length > 0) ? overwrite.images : (p.images && p.images.length > 0 ? p.images : [overwrite.image_url || DEFAULT_IMAGE])
+                // Ensure image_url is robustly handled
+                image_url: ensureValidImageUrl(overwrite.image_url || p.image_url),
             };
+            // Ensure images array is robust
+            merged.images = (overwrite.images && overwrite.images.length > 0) 
+                ? overwrite.images 
+                : (p.images && p.images.length > 0 ? p.images : [merged.image_url]);
+            
+            return merged;
         }
-        // Fallback for non-overwritten properties with missing images
+        // Fallback for non-overwritten properties
+        const fallbackImageUrl = ensureValidImageUrl(p.image_url);
         return {
             ...p,
-            image_url: p.image_url || DEFAULT_IMAGE,
-            images: (p.images && p.images.length > 0) ? p.images : [p.image_url || DEFAULT_IMAGE]
+            image_url: fallbackImageUrl,
+            images: (p.images && p.images.length > 0) ? p.images : [fallbackImageUrl]
         };
     });
 };
 
 export const applyOverwriteToSingle = (property) => {
-    if (!property) return null;
+    if (!property || !property.id) return property;
     const overwrite = propertyOverwrites[property.id];
     if (overwrite) {
-        return {
+        const merged = {
             ...property,
             ...overwrite,
-            image_url: overwrite.image_url || property.image_url || DEFAULT_IMAGE,
-            images: (overwrite.images && overwrite.images.length > 0) ? overwrite.images : (property.images && property.images.length > 0 ? property.images : [overwrite.image_url || DEFAULT_IMAGE])
+            image_url: ensureValidImageUrl(overwrite.image_url || property.image_url),
         };
+        merged.images = (overwrite.images && overwrite.images.length > 0) 
+            ? overwrite.images 
+            : (property.images && property.images.length > 0 ? property.images : [merged.image_url]);
+        return merged;
     }
+    const fallbackImageUrl = ensureValidImageUrl(property.image_url);
     return {
         ...property,
-        image_url: property.image_url || DEFAULT_IMAGE,
-        images: (property.images && property.images.length > 0) ? property.images : [property.image_url || DEFAULT_IMAGE]
+        image_url: fallbackImageUrl,
+        images: (property.images && property.images.length > 0) ? property.images : [fallbackImageUrl]
     };
 };

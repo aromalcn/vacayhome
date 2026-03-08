@@ -456,6 +456,10 @@ const PropertyDetails = () => {
                                     src={allImages[activeImageIndex]} 
                                     alt={`${property.title} - View ${activeImageIndex + 1}`} 
                                     className="w-full h-full object-cover transition-opacity duration-300" 
+                                    onError={(e) => {
+                                        e.target.onerror = null; 
+                                        e.target.src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200";
+                                    }}
                                 />
                                 
                                 {allImages.length > 1 && (
