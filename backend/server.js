@@ -9,7 +9,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Load environment variables
+dotenv.config(); // Try loading from /backend/.env (production/render root)
+dotenv.config({ path: path.join(__dirname, '../.env') }); // Try loading from project root (local dev)
 
 const app = express();
 const PORT = process.env.PORT || 5000;
