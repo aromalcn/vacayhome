@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { MapPin, User, Home, ArrowLeft, Star, IndianRupee, Flag, CheckCircle, ChevronLeft, ChevronRight, X, MessageSquarePlus, AlertCircle, Globe, Navigation, Utensils, Bus, Sparkles, Clock, MessageSquare } from 'lucide-react';
+import { applyOverwriteToSingle } from '../utils/propertyOverwrites';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -332,18 +333,19 @@ const PropertyDetails = () => {
                 if (!response.ok) throw new Error('Failed to fetch property');
                 
                 const data = await response.json();
-                setProperty(data);
+                const enrichedData = applyOverwriteToSingle(data);
+                setProperty(enrichedData);
                 
-                if (data.latitude && data.longitude) {
-                    fetchNearbyPOIs(data.latitude, data.longitude);
+                if (enrichedData.latitude && enrichedData.longitude) {
+                    fetchNearbyPOIs(enrichedData.latitude, enrichedData.longitude);
                 }
 
                 // Prepare images array
                 let images = [];
-                if (data.images && data.images.length > 0) {
-                    images = data.images;
-                } else if (data.image_url) {
-                    images = [data.image_url];
+                if (enrichedData.images && enrichedData.images.length > 0) {
+                    images = enrichedData.images;
+                } else if (enrichedData.image_url) {
+                    images = [enrichedData.image_url];
                 }
                 setAllImages(images);
 

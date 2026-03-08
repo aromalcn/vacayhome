@@ -4,6 +4,7 @@ import { Search, Check, X, Home, ArrowLeft, Filter, AlertCircle, Eye, Download, 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Link } from 'react-router-dom';
+import { applyOverwrites } from '../utils/propertyOverwrites';
 import { useToast } from '../components/Toast';
 
 const PropertiesList = () => {
@@ -51,7 +52,8 @@ const PropertiesList = () => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            const enrichedProps = await response.json();
+            const data = await response.json();
+            const enrichedProps = applyOverwrites(data);
 
             setProperties(enrichedProps);
             setFilteredProperties(enrichedProps);

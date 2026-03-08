@@ -3,6 +3,7 @@ import { Calendar, Heart, MapPin, Search, User, IndianRupee, MessageSquare, Cloc
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { formatDate } from '../utils/dateFormatter';
+import { applyOverwrites } from '../utils/propertyOverwrites';
 import HeartButton from '../components/HeartButton';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -158,6 +159,8 @@ const TouristDashboard = () => {
                 const reviewCount = reviews.length;
                 return { ...prop, avgRating, reviewCount };
             });
+
+            processedProperties = applyOverwrites(processedProperties);
 
             const validProperties = processedProperties
                 .filter(prop => {

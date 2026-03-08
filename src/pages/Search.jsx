@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search as SearchIcon, MapPin, Calendar, IndianRupee, Star, Heart } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
+import { applyOverwrites } from '../utils/propertyOverwrites';
 import HeartButton from '../components/HeartButton';
 
 const Search = () => {
@@ -40,6 +41,7 @@ const Search = () => {
             const data = await response.json();
 
             let allProps = data || [];
+            allProps = applyOverwrites(allProps);
             
             // STRICT FRONTEND FILTER (Requested by User)
             // Even if RLS allows owners to see their pending items, we hide them here.
