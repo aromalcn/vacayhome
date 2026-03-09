@@ -441,7 +441,7 @@ const PropertyDetails = () => {
     if (!property) return <div className="text-center py-20">Property not found.</div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-20 pb-10 px-4">
+        <div className="min-h-screen bg-gray-50 pt-20 pb-24 lg:pb-10 px-4">
             <div className="max-w-6xl mx-auto">
                 <Link to="/search" className="inline-flex items-center text-gray-600 hover:text-blue-600 mb-6 transition">
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back to Search
@@ -449,7 +449,7 @@ const PropertyDetails = () => {
 
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Image Gallery Section */}
-                    <div className="h-[500px] w-full relative bg-gray-900 group">
+                    <div className="h-[300px] md:h-[500px] w-full relative bg-gray-900 group">
                         {allImages.length > 0 ? (
                             <>
                                 <img 
@@ -854,6 +854,27 @@ const PropertyDetails = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Booking Header (Sticky Bottom) */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex items-center justify-between z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+                <div>
+                   <div className="flex items-center text-lg font-bold text-gray-900">
+                      <IndianRupee className="w-4 h-4" />{property.price_per_night} 
+                      <span className="text-xs font-normal text-gray-500 ml-1">/ night</span>
+                   </div>
+                   <div className="flex items-center text-xs text-yellow-500">
+                      <Star className="w-3 h-3 fill-current mr-1" />
+                      <span className="font-bold text-gray-900">{averageRating > 0 ? averageRating : 'New'}</span>
+                   </div>
+                </div>
+                <button 
+                    onClick={handleBooking}
+                    disabled={bookingLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-blue-500/30 disabled:opacity-50"
+                >
+                    {bookingLoading ? '...' : 'Reserve'}
+                </button>
             </div>
 
             {/* Contact Owner Modal */}
